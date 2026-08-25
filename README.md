@@ -4,6 +4,8 @@
 [![Version](https://img.shields.io/badge/version-0.13.0-blue.svg)](./VERSION)
 [![Node](https://img.shields.io/badge/node-%3E%3D20-green.svg)](https://nodejs.org/)
 
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/U5S225PTME)
+
 **Universal Prediction Engine** for SaaS metrics forecasting, anomaly detection, and intelligent alerting.
 
 ---

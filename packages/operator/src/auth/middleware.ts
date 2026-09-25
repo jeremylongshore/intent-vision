@@ -103,6 +103,32 @@ class RateLimiter {
 const rateLimiter = new RateLimiter();
 
 // =============================================================================
+// Scope Checking
+// =============================================================================
+
+const PERMISSION_SCOPES: readonly string[] = ['read', 'write', 'delete', 'admin'];
+
+/**
+ * Return the first required scope the caller's roles do not satisfy, or null.
+ * A scope that names an RBAC permission is checked through the role hierarchy;
+ * any other scope must be held as a role verbatim.
+ */
+export function findMissingScope(roles: string[], requiredScopes?: string[]): string | null {
+  if (!requiredScopes || requiredScopes.length === 0) {
+    return null;
+  }
+  for (const scope of requiredScopes) {
+    const satisfied = PERMISSION_SCOPES.includes(scope)
+      ? checkPermission(roles, scope as Permission)
+      : roles.includes(scope);
+    if (!satisfied) {
+      return scope;
+    }
+  }
+  return null;
+}
+
+// =============================================================================
 // Authentication Helpers
 // =============================================================================
 
@@ -240,6 +266,15 @@ export async function authenticateRequest(
         }
       }
 
+      const missingScope = findMissingScope(jwtResult.context.roles, config.requiredScopes);
+      if (missingScope) {
+        return {
+          authenticated: false,
+          error: `Missing required scope: ${missingScope}`,
+          statusCode: 403,
+        };
+      }
+
       return {
         authenticated: true,
         context: jwtResult.context,
@@ -272,6 +307,15 @@ export async function authenticateRequest(
             };
           }
         }
+      }
+
+      const missingScope = findMissingScope(apiKeyResult.context.roles, config.requiredScopes);
+      if (missingScope) {
+        return {
+          authenticated: false,
+          error: `Missing required scope: ${missingScope}`,
+          statusCode: 403,
+        };
       }
 
       return {

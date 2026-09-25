@@ -77,3 +77,8 @@ crash.log
 # Dolt database files (added by bd init)
 .dolt/
 *.db
+
+# Build artifacts emitted by tsc -b
+*.tsbuildinfo
+packages/web/vite.config.js
+packages/web/vite.config.d.ts

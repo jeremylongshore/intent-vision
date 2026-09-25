@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # sops-env — wrapper around SOPS for this repo's .env.sops file.
-# Decrypts to tmpfs, sources into env, executes the command, wipes tmpfs.
-# Plaintext never touches the SSD.
+# Decrypts to tmpfs (/dev/shm), sources into env, executes the command, then shreds the file.
+# If /dev/shm is unavailable it falls back to a mode-600 mktemp file, also shredded on exit;
+# only in that fallback can plaintext briefly touch disk.
 #
 # Usage:
 #   scripts/sops-env <command>           # run command with secrets in env

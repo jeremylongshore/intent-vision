@@ -56,6 +56,7 @@ import {
   createAuthMiddleware,
   requirePermissions,
   allowAnonymous,
+  findMissingScope,
   type AuthContext,
 } from '../src/auth/middleware.js';
 
@@ -638,6 +639,54 @@ describe('Authentication Middleware', () => {
 
       expect(result.authenticated).toBe(false);
       expect(result.error).toBeUndefined();
+    });
+  });
+});
+
+// =============================================================================
+// Scope Enforcement Tests
+// =============================================================================
+
+describe('Route scope enforcement', () => {
+  describe('findMissingScope', () => {
+    it('returns null when no scopes are required', () => {
+      expect(findMissingScope(['viewer'], undefined)).toBeNull();
+      expect(findMissingScope(['viewer'], [])).toBeNull();
+    });
+
+    it('checks permission scopes through the role hierarchy', () => {
+      expect(findMissingScope(['admin'], ['admin'])).toBeNull();
+      expect(findMissingScope(['operator'], ['write'])).toBeNull();
+      expect(findMissingScope(['viewer'], ['admin'])).toBe('admin');
+      expect(findMissingScope(['operator'], ['read', 'delete'])).toBe('delete');
+    });
+
+    it('requires non-permission scopes to be held verbatim', () => {
+      expect(findMissingScope(['billing'], ['billing'])).toBeNull();
+      expect(findMissingScope(['admin'], ['billing'])).toBe('billing');
+    });
+  });
+
+  describe('authenticateRequest with requiredScopes', () => {
+    it('rejects a viewer JWT on an admin-scoped route with 403', async () => {
+      const token = generateToken({ orgId: 'org-1', userId: 'user-1', roles: ['viewer'] });
+      const result = await authenticateRequest(
+        { authorization: `Bearer ${token}` },
+        { requiredScopes: ['admin'] }
+      );
+      expect(result.authenticated).toBe(false);
+      expect(result.statusCode).toBe(403);
+      expect(result.error).toBe('Missing required scope: admin');
+    });
+
+    it('allows an admin JWT on an admin-scoped route', async () => {
+      const token = generateToken({ orgId: 'org-1', userId: 'user-2', roles: ['admin'] });
+      const result = await authenticateRequest(
+        { authorization: `Bearer ${token}` },
+        { requiredScopes: ['admin'] }
+      );
+      expect(result.authenticated).toBe(true);
+      expect(result.context?.userId).toBe('user-2');
     });
   });
 });
